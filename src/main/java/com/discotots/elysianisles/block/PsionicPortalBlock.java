@@ -1,25 +1,25 @@
 package com.discotots.elysianisles.block;
 
-import com.discotots.elysianisles.init.ModDimensions;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.NetherPortalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.network.chat.Component;
 
 public class PsionicPortalBlock extends Block {
     public static final EnumProperty<Direction.Axis> AXIS = BlockStateProperties.HORIZONTAL_AXIS;
@@ -53,8 +53,13 @@ public class PsionicPortalBlock extends Block {
     }
 
     private boolean canSurvive(BlockState state, LevelAccessor level, BlockPos pos) {
-        PsionicPortalShape shape = new PsionicPortalShape(level, pos, state.getValue(AXIS));
-        return shape.isValid();
+        // Simple survival check - just make sure we have frame blocks
+        Direction.Axis axis = state.getValue(AXIS);
+        Direction direction1 = axis == Direction.Axis.X ? Direction.WEST : Direction.SOUTH;
+        Direction direction2 = direction1.getOpposite();
+
+        return level.getBlockState(pos.relative(direction1)).is(Blocks.SMOOTH_STONE) &&
+                level.getBlockState(pos.relative(direction2)).is(Blocks.SMOOTH_STONE);
     }
 
     @Override
@@ -64,29 +69,13 @@ public class PsionicPortalBlock extends Block {
                 entity.setPortalCooldown();
             } else {
                 if (!level.isClientSide) {
-                    // Handle teleportation logic here
-                    this.handlePortalTeleport(entity, pos);
+                    // Simple message for now - actual teleportation will be added later
+                    if (entity instanceof Player player) {
+                        player.displayClientMessage(
+                                Component.literal("Portal activated! (Teleportation system coming soon...)"),
+                                true);
+                    }
                 }
-            }
-        }
-    }
-
-    private void handlePortalTeleport(Entity entity, BlockPos pos) {
-        if (entity.level() instanceof ServerLevel serverLevel) {
-            ServerLevel destinationLevel;
-
-            if (serverLevel.dimension() == ModDimensions.ELYSIAN_LEVEL_KEY) {
-                // Teleport to Overworld
-                destinationLevel = serverLevel.getServer().getLevel(Level.OVERWORLD);
-            } else {
-                // Teleport to Elysian Dimension
-                destinationLevel = serverLevel.getServer().getLevel(ModDimensions.ELYSIAN_LEVEL_KEY);
-            }
-
-            if (destinationLevel != null) {
-                // Simple teleportation - we'll enhance this later
-                entity.changeDimension(destinationLevel);
-                entity.playSound(SoundEvents.PORTAL_TRAVEL, 1.0F, 1.0F);
             }
         }
     }
@@ -99,7 +88,7 @@ public class PsionicPortalBlock extends Block {
                     SoundSource.BLOCKS, 0.5F, random.nextFloat() * 0.4F + 0.8F, false);
         }
 
-        // Add red particle effects - similar to nether portal but red
+        // Red particle effects
         for(int i = 0; i < 4; ++i) {
             double x = (double)pos.getX() + random.nextDouble();
             double y = (double)pos.getY() + random.nextDouble();
@@ -117,9 +106,7 @@ public class PsionicPortalBlock extends Block {
                 velZ = (double)(random.nextFloat() * 2.0F * (float)j);
             }
 
-            // Use crimson spore particles for red effect
-            level.addParticle(net.minecraft.core.particles.ParticleTypes.CRIMSON_SPORE,
-                    x, y, z, velX, velY, velZ);
+            level.addParticle(ParticleTypes.CRIMSON_SPORE, x, y, z, velX, velY, velZ);
         }
     }
 

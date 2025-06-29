@@ -3,7 +3,8 @@
   "generator": {
     "type": "elysianisles:elysian_chunk_generator",
     "biome_source": {
-      "type": "elysianisles:elysian_biome_source"
+      "type": "elysianisles:elysian_biome_source",
+      "seed": 0
     }
   }
 }

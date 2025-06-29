@@ -1,10 +1,7 @@
 package com.discotots.elysianisles;
 
 import com.discotots.elysianisles.init.ModBlocks;
-import com.discotots.elysianisles.init.ModDimensions;
 import com.discotots.elysianisles.init.ModItems;
-import com.discotots.elysianisles.world.features.ElysianWorldFeatures;
-import com.discotots.elysianisles.event.PlayerSpawnHandler;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -23,11 +20,9 @@ public class ElysianIslesMod {
     public ElysianIslesMod() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        // Register mod content
+        // Register basic mod content
         ModBlocks.register(modEventBus);
         ModItems.register(modEventBus);
-        ModDimensions.register(modEventBus);
-        ElysianWorldFeatures.register(modEventBus);
 
         // Setup events
         modEventBus.addListener(this::commonSetup);
