@@ -1,0 +1,30 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+issueTrackerURL="https://github.com/discotots/elysianisles/issues"
+
+[[mods]]
+modId="elysianisles"
+version="${file.jarVersion}"
+displayName="Elysian Isles"
+logoFile="logo.png"
+credits="Created by discotots"
+authors="discotots"
+description='''
+A skyblock-style dimension mod that spawns players on floating islands in the sky. 
+Players must craft Psionic Portals using smooth stone to travel between dimensions.
+'''
+
+[[dependencies.elysianisles]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.3,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.elysianisles]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.21)"
+ordering="NONE"
+side="BOTH"
