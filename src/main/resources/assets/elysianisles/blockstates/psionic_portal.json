@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "elysianisles:block/psionic_portal_ns"
+    },
+    "axis=z": {
+      "model": "elysianisles:block/psionic_portal_ew"
+    }
+  }
+}
