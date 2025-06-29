@@ -1,0 +1,10 @@
+{
+  "type": "elysianisles:elysian_type",
+  "generator": {
+    "type": "elysianisles:simple_island_chunk_generator",
+    "biome_source": {
+      "type": "minecraft:fixed",
+      "biome": "minecraft:plains"
+    }
+  }
+}

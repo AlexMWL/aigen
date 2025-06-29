@@ -1,9 +1,11 @@
 package com.discotots.elysianisles;
 
 import com.discotots.elysianisles.event.FrameBreakListener;
+import com.discotots.elysianisles.event.PlayerSpawnHandler;
 import com.discotots.elysianisles.event.PortalIgnitionHandler;
 import com.discotots.elysianisles.event.PortalProtectionHandler;
 import com.discotots.elysianisles.init.ModBlocks;
+import com.discotots.elysianisles.init.ModDimensions;
 import com.discotots.elysianisles.init.ModItems;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
@@ -26,6 +28,7 @@ public class ElysianIslesMod {
         // Register mod content
         ModBlocks.register(modEventBus);
         ModItems.register(modEventBus);
+        ModDimensions.register(modEventBus);
 
         // Setup events
         modEventBus.addListener(this::commonSetup);
@@ -36,6 +39,7 @@ public class ElysianIslesMod {
         MinecraftForge.EVENT_BUS.register(PortalIgnitionHandler.class);
         MinecraftForge.EVENT_BUS.register(FrameBreakListener.class);
         MinecraftForge.EVENT_BUS.register(PortalProtectionHandler.class);
+        MinecraftForge.EVENT_BUS.register(PlayerSpawnHandler.class);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
