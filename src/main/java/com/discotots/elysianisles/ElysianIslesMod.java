@@ -1,6 +1,5 @@
 package com.discotots.elysianisles;
 
-import com.discotots.elysianisles.event.ElysianMobSpawnHandler;
 import com.discotots.elysianisles.event.FrameBreakListener;
 import com.discotots.elysianisles.event.PlayerSpawnHandler;
 import com.discotots.elysianisles.event.PortalIgnitionHandler;
@@ -41,7 +40,6 @@ public class ElysianIslesMod {
         MinecraftForge.EVENT_BUS.register(FrameBreakListener.class);
         MinecraftForge.EVENT_BUS.register(PortalProtectionHandler.class);
         MinecraftForge.EVENT_BUS.register(PlayerSpawnHandler.class);
-        MinecraftForge.EVENT_BUS.register(ElysianMobSpawnHandler.class);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {

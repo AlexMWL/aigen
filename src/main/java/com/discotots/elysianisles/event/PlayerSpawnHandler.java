@@ -114,13 +114,13 @@ public class PlayerSpawnHandler {
         BlockPos checkPos = new BlockPos(x, 0, z);
         int surfaceY = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, checkPos).getY();
 
-        ElysianIslesMod.LOGGER.debug("Checking position ({}, {}) - heightmap says surface at Y={}", x, z, surfaceY);
+        ElysianIslesMod.LOGGER.info("Checking position ({}, {}) - heightmap says surface at Y={}", x, z, surfaceY);
 
         // Check a range around the heightmap result
         for (int y = surfaceY + 5; y >= surfaceY - 5; y--) {
             BlockPos testPos = new BlockPos(x, y, z);
             if (isPositionSafe(level, testPos)) {
-                ElysianIslesMod.LOGGER.debug("Found safe position at {}", testPos);
+                ElysianIslesMod.LOGGER.info("Found safe position at {}", testPos);
                 return testPos;
             }
         }
