@@ -11,16 +11,14 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 import java.util.HashSet;
 import java.util.Set;
 
-@Mod.EventBusSubscriber(modid = ElysianIslesMod.MOD_ID)
 public class FrameBreakListener {
 
     @SubscribeEvent
-    public static void onBlockBreak(BlockEvent.BreakEvent event) {
+    public void onBlockBreak(BlockEvent.BreakEvent event) { // REMOVED static
         Level level = (Level) event.getLevel();
         BlockPos pos = event.getPos();
         BlockState brokenBlock = event.getState();
@@ -55,7 +53,7 @@ public class FrameBreakListener {
         }
     }
 
-    private static Set<BlockPos> findNearbyPortalBlocks(Level level, BlockPos framePos) {
+    private Set<BlockPos> findNearbyPortalBlocks(Level level, BlockPos framePos) { // REMOVED static
         Set<BlockPos> portalBlocks = new HashSet<>();
 
         // Check in a 5x5x5 area around the broken frame block
@@ -73,7 +71,7 @@ public class FrameBreakListener {
         return portalBlocks;
     }
 
-    private static Set<BlockPos> findConnectedPortalBlocks(Level level, BlockPos start) {
+    private Set<BlockPos> findConnectedPortalBlocks(Level level, BlockPos start) { // REMOVED static
         Set<BlockPos> portalBlocks = new HashSet<>();
         Set<BlockPos> toCheck = new HashSet<>();
         toCheck.add(start);
