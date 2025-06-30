@@ -25,27 +25,27 @@
     "creature": [
       {
         "type": "minecraft:sheep",
-        "weight": 12,
+        "weight": 35,
         "minCount": 4,
-        "maxCount": 4
+        "maxCount": 6
       },
       {
         "type": "minecraft:pig",
-        "weight": 10,
+        "weight": 30,
         "minCount": 4,
-        "maxCount": 4
+        "maxCount": 6
       },
       {
         "type": "minecraft:chicken",
-        "weight": 10,
+        "weight": 30,
         "minCount": 4,
-        "maxCount": 4
+        "maxCount": 6
       },
       {
         "type": "minecraft:cow",
-        "weight": 8,
+        "weight": 25,
         "minCount": 4,
-        "maxCount": 4
+        "maxCount": 6
       }
     ]
   },
@@ -84,7 +84,9 @@
     ],
     [],
     [
-      "minecraft:trees_plains"
+      "elysianisles:trees_elysian_dense",
+      "minecraft:flower_plains",
+      "minecraft:patch_grass_forest"
     ]
   ]
 }
