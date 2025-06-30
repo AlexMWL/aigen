@@ -21,10 +21,18 @@ import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
+import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
+import net.minecraft.world.level.levelgen.feature.Feature;
+import net.minecraft.world.level.levelgen.feature.configurations.TreeConfiguration;
+import net.minecraft.world.level.levelgen.feature.featuresize.TwoLayersFeatureSize;
+import net.minecraft.world.level.levelgen.feature.foliageplacers.BlobFoliagePlacer;
+import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
+import net.minecraft.world.level.levelgen.feature.trunkplacers.StraightTrunkPlacer;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
+import net.minecraft.util.valueproviders.ConstantInt;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -70,12 +78,252 @@ public class SimpleIslandChunkGenerator extends ChunkGenerator {
 
     @Override
     public void buildSurface(WorldGenRegion region, StructureManager structures, RandomState randomState, ChunkAccess chunk) {
-        // Surface handled in fillFromNoise
+        // Add trees and vegetation during surface building
+        generateTrees(region, chunk, randomState);
+        addVegetation(region, chunk, randomState);
     }
 
     @Override
     public void spawnOriginalMobs(WorldGenRegion region) {
-        // Only spawn mobs on the island surface
+        // Enhanced mob spawning - spawn peaceful mobs on grass areas
+        ChunkPos chunkPos = region.getCenter();
+        RandomSource random = region.getRandom();
+
+        // Only spawn in chunks near the island center
+        double distFromCenter = Math.sqrt(
+                Math.pow(chunkPos.x * 16 - ISLAND_CENTER_X, 2) +
+                        Math.pow(chunkPos.z * 16 - ISLAND_CENTER_Z, 2)
+        );
+
+        if (distFromCenter < 80) { // Within reasonable distance of island center
+            for (int attempts = 0; attempts < 8; attempts++) {
+                int x = random.nextInt(16);
+                int z = random.nextInt(16);
+                int worldX = chunkPos.getMinBlockX() + x;
+                int worldZ = chunkPos.getMinBlockZ() + z;
+
+                // Find surface height
+                for (int y = region.getMaxBuildHeight() - 1; y > region.getMinBuildHeight(); y--) {
+                    BlockPos pos = new BlockPos(worldX, y, worldZ);
+                    if (region.getBlockState(pos).is(Blocks.GRASS_BLOCK)) {
+                        BlockPos spawnPos = pos.above();
+
+                        // Check if spawn location is safe
+                        if (region.getBlockState(spawnPos).isAir() &&
+                                region.getBlockState(spawnPos.above()).isAir()) {
+
+                            // Spawn different animals based on random chance
+                            if (random.nextFloat() < 0.15f) { // 15% chance per attempt
+                                spawnAnimal(region, spawnPos, random);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private void spawnAnimal(WorldGenRegion region, BlockPos pos, RandomSource random) {
+        // This would require entity registration - for now we'll just log
+        // In a full implementation, you'd spawn entities here
+        float chance = random.nextFloat();
+        String animalType;
+
+        if (chance < 0.3f) {
+            animalType = "pig";
+        } else if (chance < 0.5f) {
+            animalType = "cow";
+        } else if (chance < 0.7f) {
+            animalType = "sheep";
+        } else if (chance < 0.85f) {
+            animalType = "chicken";
+        } else {
+            animalType = "rabbit";
+        }
+
+        // Log for debugging - you'd actually spawn entities here
+        System.out.println("Would spawn " + animalType + " at " + pos);
+    }
+
+    private void generateTrees(WorldGenRegion region, ChunkAccess chunk, RandomState randomState) {
+        RandomSource random = region.getRandom();
+        ChunkPos chunkPos = chunk.getPos();
+
+        // Generate trees with varying density based on distance from center
+        for (int attempt = 0; attempt < 12; attempt++) {
+            int x = random.nextInt(16);
+            int z = random.nextInt(16);
+            int worldX = chunkPos.getMinBlockX() + x;
+            int worldZ = chunkPos.getMinBlockZ() + z;
+
+            // Check if we're on the island
+            double islandShape = calculateJaggedBlobShape(worldX, worldZ);
+            if (islandShape <= 5) continue; // Only place trees well within island bounds
+
+            // Find surface
+            for (int y = region.getMaxBuildHeight() - 1; y > region.getMinBuildHeight(); y--) {
+                BlockPos surfacePos = new BlockPos(worldX, y, worldZ);
+                if (region.getBlockState(surfacePos).is(Blocks.GRASS_BLOCK)) {
+                    BlockPos treePos = surfacePos.above();
+
+                    // Check if there's enough space for a tree
+                    if (hasSpaceForTree(region, treePos)) {
+                        // Plant different tree types
+                        if (random.nextFloat() < 0.7f) {
+                            generateOakTree(region, treePos, random);
+                        } else if (random.nextFloat() < 0.3f) {
+                            generateBirchTree(region, treePos, random);
+                        } else {
+                            generateSpruceTree(region, treePos, random);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private void addVegetation(WorldGenRegion region, ChunkAccess chunk, RandomState randomState) {
+        RandomSource random = region.getRandom();
+        ChunkPos chunkPos = chunk.getPos();
+
+        // Add grass, flowers, and other vegetation
+        for (int attempt = 0; attempt < 32; attempt++) {
+            int x = random.nextInt(16);
+            int z = random.nextInt(16);
+            int worldX = chunkPos.getMinBlockX() + x;
+            int worldZ = chunkPos.getMinBlockZ() + z;
+
+            // Check if we're on the island
+            double islandShape = calculateJaggedBlobShape(worldX, worldZ);
+            if (islandShape <= 2) continue;
+
+            // Find surface
+            for (int y = region.getMaxBuildHeight() - 1; y > region.getMinBuildHeight(); y--) {
+                BlockPos surfacePos = new BlockPos(worldX, y, worldZ);
+                if (region.getBlockState(surfacePos).is(Blocks.GRASS_BLOCK)) {
+                    BlockPos plantPos = surfacePos.above();
+
+                    if (region.getBlockState(plantPos).isAir()) {
+                        float vegChance = random.nextFloat();
+
+                        if (vegChance < 0.4f) {
+                            region.setBlock(plantPos, Blocks.GRASS.defaultBlockState(), 3);
+                        } else if (vegChance < 0.45f) {
+                            region.setBlock(plantPos, Blocks.TALL_GRASS.defaultBlockState(), 3);
+                        } else if (vegChance < 0.47f) {
+                            region.setBlock(plantPos, Blocks.DANDELION.defaultBlockState(), 3);
+                        } else if (vegChance < 0.49f) {
+                            region.setBlock(plantPos, Blocks.POPPY.defaultBlockState(), 3);
+                        } else if (vegChance < 0.5f) {
+                            region.setBlock(plantPos, Blocks.BLUE_ORCHID.defaultBlockState(), 3);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private boolean hasSpaceForTree(WorldGenRegion region, BlockPos pos) {
+        // Check 3x3 area and height clearance
+        for (int x = -1; x <= 1; x++) {
+            for (int z = -1; z <= 1; z++) {
+                for (int y = 0; y < 6; y++) {
+                    BlockPos checkPos = pos.offset(x, y, z);
+                    if (!region.getBlockState(checkPos).isAir()) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private void generateOakTree(WorldGenRegion region, BlockPos pos, RandomSource random) {
+        int height = 4 + random.nextInt(3); // 4-6 blocks tall
+
+        // Generate trunk
+        for (int y = 0; y < height; y++) {
+            region.setBlock(pos.above(y), Blocks.OAK_LOG.defaultBlockState(), 3);
+        }
+
+        // Generate leaves (simple blob pattern)
+        BlockPos leafTop = pos.above(height);
+
+        // Top layer
+        region.setBlock(leafTop, Blocks.OAK_LEAVES.defaultBlockState(), 3);
+
+        // Middle layers
+        for (int layer = 1; layer <= 2; layer++) {
+            for (int x = -2; x <= 2; x++) {
+                for (int z = -2; z <= 2; z++) {
+                    if (Math.abs(x) == 2 && Math.abs(z) == 2) continue; // Skip corners
+
+                    BlockPos leafPos = leafTop.offset(x, -layer, z);
+                    if (random.nextFloat() < 0.85f) { // 85% chance for each leaf block
+                        region.setBlock(leafPos, Blocks.OAK_LEAVES.defaultBlockState(), 3);
+                    }
+                }
+            }
+        }
+    }
+
+    private void generateBirchTree(WorldGenRegion region, BlockPos pos, RandomSource random) {
+        int height = 5 + random.nextInt(2); // 5-6 blocks tall
+
+        // Generate trunk
+        for (int y = 0; y < height; y++) {
+            region.setBlock(pos.above(y), Blocks.BIRCH_LOG.defaultBlockState(), 3);
+        }
+
+        // Generate leaves
+        BlockPos leafTop = pos.above(height);
+        region.setBlock(leafTop, Blocks.BIRCH_LEAVES.defaultBlockState(), 3);
+
+        for (int layer = 1; layer <= 2; layer++) {
+            for (int x = -1; x <= 1; x++) {
+                for (int z = -1; z <= 1; z++) {
+                    if (x == 0 && z == 0 && layer == 1) continue; // Skip center in first layer
+
+                    BlockPos leafPos = leafTop.offset(x, -layer, z);
+                    if (random.nextFloat() < 0.9f) {
+                        region.setBlock(leafPos, Blocks.BIRCH_LEAVES.defaultBlockState(), 3);
+                    }
+                }
+            }
+        }
+    }
+
+    private void generateSpruceTree(WorldGenRegion region, BlockPos pos, RandomSource random) {
+        int height = 6 + random.nextInt(3); // 6-8 blocks tall
+
+        // Generate trunk
+        for (int y = 0; y < height; y++) {
+            region.setBlock(pos.above(y), Blocks.SPRUCE_LOG.defaultBlockState(), 3);
+        }
+
+        // Generate leaves (christmas tree shape)
+        BlockPos leafTop = pos.above(height);
+        region.setBlock(leafTop, Blocks.SPRUCE_LEAVES.defaultBlockState(), 3);
+
+        // Generate layers getting wider towards bottom
+        for (int layer = 1; layer <= 4; layer++) {
+            int radius = Math.min(2, (layer + 1) / 2);
+
+            for (int x = -radius; x <= radius; x++) {
+                for (int z = -radius; z <= radius; z++) {
+                    if (x == 0 && z == 0) continue; // Skip center (trunk)
+
+                    double distance = Math.sqrt(x * x + z * z);
+                    if (distance <= radius && random.nextFloat() < 0.9f) {
+                        BlockPos leafPos = leafTop.offset(x, -layer, z);
+                        region.setBlock(leafPos, Blocks.SPRUCE_LEAVES.defaultBlockState(), 3);
+                    }
+                }
+            }
+        }
     }
 
     @Override

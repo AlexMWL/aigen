@@ -1,11 +1,10 @@
 {
   "ultrawarm": false,
-  "natural": false,
+  "natural": true,
   "coordinate_scale": 1.0,
   "has_skylight": true,
   "has_ceiling": false,
   "ambient_light": 0.0,
-  "fixed_time": 6000,
   "monster_spawn_light_level": 0,
   "monster_spawn_block_light_limit": 0,
   "piglin_safe": false,
