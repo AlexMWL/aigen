@@ -1,6 +1,5 @@
 package com.discotots.elysianisles.block;
 
-import com.discotots.elysianisles.ElysianIslesMod;
 import com.discotots.elysianisles.init.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -12,176 +11,120 @@ public class PsionicPortalShape {
     private final LevelAccessor level;
     private final Direction.Axis axis;
     private final Direction rightDir;
-    private final Direction leftDir;
     private int portalBlockCount;
     private BlockPos bottomLeft;
     private int height;
     private int width;
 
+    private static final int MIN_PORTAL_WIDTH = 2;
+    private static final int MAX_PORTAL_WIDTH = 21;
+    private static final int MIN_PORTAL_HEIGHT = 3;
+    private static final int MAX_PORTAL_HEIGHT = 21;
+
     public PsionicPortalShape(LevelAccessor level, BlockPos pos, Direction.Axis axis) {
         this.level = level;
         this.axis = axis;
-        this.rightDir = axis == Direction.Axis.X ? Direction.WEST : Direction.SOUTH;
-        this.leftDir = this.rightDir.getOpposite();
-
-        ElysianIslesMod.LOGGER.info("Creating portal shape at {} for axis {}", pos, axis);
-        ElysianIslesMod.LOGGER.info("Right direction: {}, Left direction: {}", rightDir, leftDir);
+        this.rightDir = (axis == Direction.Axis.X) ? Direction.EAST : Direction.SOUTH;
 
         this.bottomLeft = this.calculateBottomLeft(pos);
         if (this.bottomLeft == null) {
-            ElysianIslesMod.LOGGER.info("Could not find bottom left, using clicked position");
             this.bottomLeft = pos;
             this.width = 1;
             this.height = 1;
         } else {
-            ElysianIslesMod.LOGGER.info("Bottom left found at: {}", bottomLeft);
             this.width = this.calculateWidth();
-            ElysianIslesMod.LOGGER.info("Calculated width: {}", width);
             if (this.width > 0) {
                 this.height = this.calculateHeight();
-                ElysianIslesMod.LOGGER.info("Calculated height: {}", height);
             }
         }
-
-        ElysianIslesMod.LOGGER.info("Final portal dimensions: {}x{}, valid: {}", width, height, isValid());
     }
 
     private BlockPos calculateBottomLeft(BlockPos pos) {
-        ElysianIslesMod.LOGGER.info("Calculating bottom left from position: {}", pos);
-
-        // Find the bottom of the portal (move down until we hit a frame block or can't go further)
-        BlockPos bottomPos = pos;
-        for (int i = Math.max(0, pos.getY() - 21); bottomPos.getY() > i && this.isEmpty(bottomPos.below()); bottomPos = bottomPos.below()) {
-            ElysianIslesMod.LOGGER.info("Moving down from {} to {}", bottomPos, bottomPos.below());
+        int i = Math.max(this.level.getMinBuildHeight(), pos.getY() - MAX_PORTAL_HEIGHT);
+        while(pos.getY() > i && isEmpty(this.level.getBlockState(pos.below()))) {
+            pos = pos.below();
         }
 
-        ElysianIslesMod.LOGGER.info("Found bottom at: {}", bottomPos);
-
-        // Find the left edge (move in the right direction until we hit a frame block)
-        Direction direction = this.rightDir;
-        BlockPos leftPos = bottomPos;
-        for (int j = Math.max(1, bottomPos.relative(direction, 1).getX() - 21);
-             leftPos.relative(direction).getX() > j && this.isEmpty(leftPos.relative(direction));
-             leftPos = leftPos.relative(direction)) {
-            ElysianIslesMod.LOGGER.info("Moving {} from {} to {}", direction, leftPos, leftPos.relative(direction));
-        }
-
-        ElysianIslesMod.LOGGER.info("Found left edge at: {}", leftPos);
-
-        // Check if we have a frame block to the right of our left edge
-        BlockPos frameCheck = leftPos.relative(direction);
-        boolean hasFrame = this.isFrameBlock(frameCheck);
-        ElysianIslesMod.LOGGER.info("Frame check at {}: {} (block: {})",
-                frameCheck, hasFrame, level.getBlockState(frameCheck).getBlock());
-
-        if (hasFrame) {
-            return leftPos;
-        } else {
-            ElysianIslesMod.LOGGER.info("No frame block found, returning null");
+        Direction searchDir = rightDir.getOpposite();
+        int distanceToLeft = this.getDistanceUntilEdge(pos, searchDir) -1;
+        if(distanceToLeft < 0) {
             return null;
         }
+        return pos.relative(searchDir, distanceToLeft);
     }
 
     private int calculateWidth() {
-        int width = 0;
-        for (int i = 0; i < 21; ++i) {
-            BlockPos pos = this.bottomLeft.relative(this.leftDir, i);
-            ElysianIslesMod.LOGGER.info("Checking width position {}: {}", i, pos);
-
-            if (!this.isEmpty(pos)) {
-                ElysianIslesMod.LOGGER.info("Position {} is not empty: {}", pos, level.getBlockState(pos).getBlock());
-                break;
-            }
-
-            BlockPos framePos = pos.below();
-            if (!this.isFrameBlock(framePos)) {
-                ElysianIslesMod.LOGGER.info("No frame block below position {}: {}", framePos, level.getBlockState(framePos).getBlock());
-                break;
-            }
-
-            ++width;
-            ElysianIslesMod.LOGGER.info("Width now: {}", width);
-        }
-
-        boolean validWidth = width >= 2 && width <= 21;
-        ElysianIslesMod.LOGGER.info("Final width: {}, valid: {}", width, validWidth);
-        return validWidth ? width : 0;
+        int i = this.getDistanceUntilEdge(this.bottomLeft, this.rightDir);
+        return i >= MIN_PORTAL_WIDTH && i <= MAX_PORTAL_WIDTH ? i : 0;
     }
+
+    private int getDistanceUntilEdge(BlockPos pos, Direction direction) {
+        BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
+
+        for(int i = 0; i <= MAX_PORTAL_WIDTH; ++i) {
+            mutablePos.set(pos).move(direction, i);
+            if (!this.isEmpty(this.level.getBlockState(mutablePos))) {
+                return i;
+            }
+            if (!this.level.getBlockState(mutablePos.move(Direction.DOWN)).is(Blocks.SMOOTH_STONE)) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
 
     private int calculateHeight() {
         BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
-        int height = this.getDistanceUntilEdge(mutablePos, this.bottomLeft, this.leftDir, this.rightDir);
-        boolean hasTop = height >= 3 && height <= 21 && this.hasTopFrame(mutablePos, height);
-        ElysianIslesMod.LOGGER.info("Height calculation: {}, has top frame: {}", height, hasTop);
-        return hasTop ? height : 0;
+        int i = this.getDistanceUntilTop(mutablePos);
+        return i >= MIN_PORTAL_HEIGHT && i <= MAX_PORTAL_HEIGHT ? i : 0;
     }
 
-    private boolean hasTopFrame(BlockPos.MutableBlockPos mutablePos, int height) {
-        for (int i = 0; i < this.width; ++i) {
-            mutablePos.set(this.bottomLeft.relative(this.leftDir, i).relative(Direction.UP, height));
-            if (!this.isFrameBlock(mutablePos)) {
-                ElysianIslesMod.LOGGER.info("Missing top frame at position: {}", mutablePos);
-                return false;
+    private int getDistanceUntilTop(BlockPos.MutableBlockPos mutablePos) {
+        for(int i = 0; i < MAX_PORTAL_HEIGHT; ++i) {
+            BlockPos leftFrame = this.bottomLeft.relative(this.rightDir.getOpposite()).above(i);
+            BlockPos rightFrame = this.bottomLeft.relative(this.rightDir, this.width).above(i);
+
+            if (!this.level.getBlockState(leftFrame).is(Blocks.SMOOTH_STONE) || !this.level.getBlockState(rightFrame).is(Blocks.SMOOTH_STONE)) {
+                return i;
+            }
+
+            for(int j = 0; j < this.width; ++j) {
+                if (!this.isEmpty(this.level.getBlockState(this.bottomLeft.relative(this.rightDir, j).above(i)))) {
+                    return i;
+                }
             }
         }
-        ElysianIslesMod.LOGGER.info("Top frame complete");
-        return true;
-    }
-
-    private int getDistanceUntilEdge(BlockPos.MutableBlockPos mutablePos, BlockPos pos, Direction leftDir, Direction rightDir) {
-        mutablePos.set(pos);
-        int distance = 0;
-        while (distance < 21) {
-            mutablePos.move(Direction.UP);
-            BlockState state = this.level.getBlockState(mutablePos);
-            if (!this.isEmpty(state)) {
-                ElysianIslesMod.LOGGER.info("Hit non-empty block at height {}: {}", distance, state.getBlock());
-                break;
-            }
-
-            BlockState leftState = this.level.getBlockState(mutablePos.relative(leftDir));
-            BlockState rightState = this.level.getBlockState(mutablePos.relative(rightDir));
-            if (!this.isFrameBlock(leftState) || !this.isFrameBlock(rightState)) {
-                ElysianIslesMod.LOGGER.info("Missing side frame at height {}: left={}, right={}",
-                        distance, leftState.getBlock(), rightState.getBlock());
-                break;
-            }
-
-            ++distance;
-        }
-        return distance;
-    }
-
-    private boolean isEmpty(BlockPos pos) {
-        return this.isEmpty(this.level.getBlockState(pos));
+        return MAX_PORTAL_HEIGHT;
     }
 
     private boolean isEmpty(BlockState state) {
-        boolean empty = state.isAir() || state.is(ModBlocks.PSIONIC_PORTAL.get());
-        ElysianIslesMod.LOGGER.debug("Block {} empty: {}", state.getBlock(), empty);
-        return empty;
-    }
-
-    private boolean isFrameBlock(BlockPos pos) {
-        return this.isFrameBlock(this.level.getBlockState(pos));
-    }
-
-    private boolean isFrameBlock(BlockState state) {
-        boolean isFrame = state.is(Blocks.SMOOTH_STONE);
-        ElysianIslesMod.LOGGER.debug("Block {} is frame: {}", state.getBlock(), isFrame);
-        return isFrame;
+        return state.isAir() || state.is(ModBlocks.PSIONIC_PORTAL.get());
     }
 
     public boolean isValid() {
-        boolean valid = this.bottomLeft != null && this.width >= 2 && this.width <= 21 && this.height >= 3 && this.height <= 21;
-        ElysianIslesMod.LOGGER.info("Portal valid: {} (bottomLeft: {}, width: {}, height: {})",
-                valid, bottomLeft != null, width, height);
-        return valid;
+        return this.bottomLeft != null && this.width >= MIN_PORTAL_WIDTH && this.width <= MAX_PORTAL_WIDTH && this.height >= MIN_PORTAL_HEIGHT && this.height <= MAX_PORTAL_HEIGHT;
     }
 
     public void createPortalBlocks() {
         BlockState portalState = ModBlocks.PSIONIC_PORTAL.get().defaultBlockState().setValue(PsionicPortalBlock.AXIS, this.axis);
-        BlockPos.betweenClosed(this.bottomLeft, this.bottomLeft.relative(Direction.UP, this.height - 1).relative(this.leftDir, this.width - 1))
+        BlockPos.betweenClosed(this.bottomLeft, this.bottomLeft.relative(Direction.UP, this.height - 1).relative(this.rightDir, this.width - 1))
                 .forEach(pos -> this.level.setBlock(pos, portalState, 18));
+    }
+
+    public Direction.Axis getAxis() {
+        return this.axis;
+    }
+
+    public int getWidth() {
+        return this.width;
+    }
+
+    public int getHeight() {
+        return this.height;
+    }
+    // Add this method to the very end of the PsionicPortalShape class
+    public BlockPos getBottomLeft() {
+        return this.bottomLeft;
     }
 }
