@@ -4,7 +4,7 @@
     "type": "elysianisles:simple_island_chunk_generator",
     "biome_source": {
       "type": "minecraft:fixed",
-      "biome": "minecraft:plains"
+      "biome": "elysianisles:elysian_biome"
     }
   }
 }
