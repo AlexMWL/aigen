@@ -2,6 +2,7 @@ package com.discotots.elysianisles.world.portal;
 
 import com.discotots.elysianisles.ElysianIslesMod;
 import com.discotots.elysianisles.init.ModBlocks;
+import com.discotots.elysianisles.init.ModDimensions; // <-- ADD THIS LINE
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -52,43 +53,32 @@ public class PortalTeleporter implements ITeleporter {
 
     private BlockPos findOrCreatePortal(Entity entity) {
         PortalManager portalManager = PortalManager.get(this.level);
-        BlockPos existingPortalPos = portalManager.getPortalPos(this.level.dimension());
 
-        ElysianIslesMod.LOGGER.info("Looking for existing portal in {}, registered at: {}",
-                this.level.dimension().location(), existingPortalPos);
-
-        // Check if we have a registered portal that actually exists
-        if (existingPortalPos != null && this.level.isLoaded(existingPortalPos)) {
-            if (isValidPortalAt(existingPortalPos)) {
-                ElysianIslesMod.LOGGER.info("Using existing valid portal at: {}", existingPortalPos);
-                return existingPortalPos;
-            } else {
-                ElysianIslesMod.LOGGER.warn("Registered portal at {} is invalid, searching for any existing portal", existingPortalPos);
-
-                // Search for any existing portal in the dimension before creating a new one
-                BlockPos foundPortal = searchForExistingPortal(entity.blockPosition());
-                if (foundPortal != null) {
-                    ElysianIslesMod.LOGGER.info("Found existing unregistered portal at: {}", foundPortal);
-                    portalManager.setPortalPos(this.level.dimension(), foundPortal);
-                    return foundPortal;
-                }
-            }
-        } else if (existingPortalPos == null) {
-            ElysianIslesMod.LOGGER.info("No portal registered for dimension, searching for existing portals");
-
-            // Search for any existing portal in the dimension
-            BlockPos foundPortal = searchForExistingPortal(entity.blockPosition());
-            if (foundPortal != null) {
-                ElysianIslesMod.LOGGER.info("Found existing unregistered portal at: {}", foundPortal);
-                portalManager.setPortalPos(this.level.dimension(), foundPortal);
-                return foundPortal;
-            }
+        // --- FIXED: Determine the correct center point for our search ---
+        BlockPos searchCenter;
+        if (this.level.dimension() == ModDimensions.ELYSIAN_LEVEL_KEY) {
+            // If the destination is the sky world, always search around the island's center.
+            searchCenter = new BlockPos(8, 90, -5);
+        } else {
+            // Otherwise, search near the entity's coordinates.
+            searchCenter = entity.blockPosition();
         }
 
-        // No existing portal found, create a new one
-        ElysianIslesMod.LOGGER.info("No existing portal found, creating new portal");
-        BlockPos entityPos = entity.blockPosition();
-        BlockPos safePos = this.findSafePortalLocation(entityPos);
+        ElysianIslesMod.LOGGER.info("Searching for existing portal in {} around {}",
+                this.level.dimension().location(), searchCenter);
+
+        // --- FIXED: Prioritize searching for ANY existing portal first ---
+        BlockPos foundPortal = searchForExistingPortal(searchCenter);
+        if (foundPortal != null) {
+            ElysianIslesMod.LOGGER.info("Found an existing portal at {}. Using it.", foundPortal);
+            // Update the manager so we find it faster next time.
+            portalManager.setPortalPos(this.level.dimension(), foundPortal);
+            return foundPortal;
+        }
+
+        // --- If no portal is found after a wide search, THEN create a new one ---
+        ElysianIslesMod.LOGGER.info("No existing portal found. Creating a new one.");
+        BlockPos safePos = this.findSafePortalLocation(searchCenter);
         return this.createPortal(safePos);
     }
 
@@ -235,16 +225,16 @@ public class PortalTeleporter implements ITeleporter {
 
     private BlockPos findSuitableGroundLevel(BlockPos pos, boolean isOverworld) {
         if (isOverworld) {
-            // In overworld, find surface level
-            BlockPos surface = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, pos);
+            // In overworld, find surface level, ignoring trees.
+            BlockPos groundPos = this.level.getHeightmapPos(Heightmap.Types.WORLD_SURFACE_WG, pos);
 
-            // Avoid water
-            if (this.level.getFluidState(surface).isSource() ||
-                    this.level.getFluidState(surface.below()).isSource()) {
+            // Avoid building in water.
+            if (this.level.getFluidState(groundPos).isSource()) {
                 return null;
             }
 
-            return surface.below(); // Return the block below surface for building platform
+            // Return the ground block itself. The portal platform will be built on it.
+            return groundPos;
         } else {
             // In sky dimension or other dimensions, find a solid surface
             BlockPos.MutableBlockPos scanner = new BlockPos.MutableBlockPos(pos.getX(), 128, pos.getZ());
@@ -275,8 +265,8 @@ public class PortalTeleporter implements ITeleporter {
                     BlockPos checkPos = pos.offset(x, y, z);
                     BlockState state = this.level.getBlockState(checkPos);
 
-                    // Don't build in lava or other dangerous fluids
-                    if (!state.getFluidState().isEmpty() && !state.getFluidState().is(net.minecraft.world.level.material.Fluids.WATER)) {
+                    // FIXED: Allow only air and water, reject solid blocks and other fluids.
+                    if (!state.isAir() && !state.getFluidState().is(net.minecraft.world.level.material.Fluids.WATER)) {
                         return false;
                     }
                 }
@@ -288,8 +278,8 @@ public class PortalTeleporter implements ITeleporter {
     private BlockPos createPortal(BlockPos pos) {
         PortalManager portalManager = PortalManager.get(this.level);
 
-        // Don't destroy old portals when creating new ones - let them coexist
-        // portalManager.destroyOldPortal(this.level); // REMOVED THIS LINE
+        // Destroy any other portal in the dimension before creating a new one
+        portalManager.destroyOldPortal(this.level);
 
         Direction frameDir = this.axis == Direction.Axis.X ? Direction.EAST : Direction.NORTH;
         BlockPos bottomLeft = pos.above().relative(frameDir.getOpposite(), this.width / 2);

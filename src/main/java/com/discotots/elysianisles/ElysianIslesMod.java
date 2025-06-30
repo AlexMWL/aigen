@@ -41,7 +41,7 @@ public class ElysianIslesMod {
         MinecraftForge.EVENT_BUS.register(new FrameBreakListener());
         MinecraftForge.EVENT_BUS.register(new PortalProtectionHandler());
         MinecraftForge.EVENT_BUS.register(new PlayerSpawnHandler());
-        MinecraftForge.EVENT_BUS.register(new PortalEffectsHandler()); // FIXED: Added registration
+        // MinecraftForge.EVENT_BUS.register(new PortalEffectsHandler()); // FIXED: Disabled redundant handler
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
