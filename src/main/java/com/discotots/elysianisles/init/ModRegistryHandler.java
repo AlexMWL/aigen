@@ -1,7 +1,7 @@
 package com.discotots.elysianisles.init;
 
 import com.discotots.elysianisles.ElysianIslesMod;
-import com.discotots.elysianisles.world.chunk.SimpleIslandChunkGenerator;
+import com.discotots.elysianisles.world.chunk.IslandChunkGenerator;
 import net.minecraft.core.registries.Registries;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -16,7 +16,7 @@ public class ModRegistryHandler {
         if (event.getRegistryKey().equals(Registries.CHUNK_GENERATOR)) {
             event.register(Registries.CHUNK_GENERATOR,
                     ElysianIslesMod.modLoc("simple_island_chunk_generator"),
-                    () -> SimpleIslandChunkGenerator.CODEC);
+                    () -> IslandChunkGenerator.CODEC);
 
             ElysianIslesMod.LOGGER.info("Registered Simple Island Chunk Generator");
         }

@@ -3,10 +3,7 @@ package com.discotots.elysianisles.world.chunk;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.HolderSet;
 import net.minecraft.server.level.WorldGenRegion;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.NoiseColumn;
@@ -21,27 +18,25 @@ import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
-import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
-import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-public class SimpleIslandChunkGenerator extends ChunkGenerator {
-    public static final Codec<SimpleIslandChunkGenerator> CODEC = RecordCodecBuilder.create(instance ->
+public class IslandChunkGenerator extends ChunkGenerator {
+    public static final Codec<IslandChunkGenerator> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
                     BiomeSource.CODEC.fieldOf("biome_source").forGetter(generator -> generator.biomeSource)
-            ).apply(instance, SimpleIslandChunkGenerator::new)
+            ).apply(instance, IslandChunkGenerator::new)
     );
 
     private static final int ISLAND_CENTER_X = 8;
     private static final int ISLAND_CENTER_Z = -5;
     private static final int ISLAND_BASE_HEIGHT = 72;
 
-    public SimpleIslandChunkGenerator(BiomeSource biomeSource) {
+    public IslandChunkGenerator(BiomeSource biomeSource) {
         super(biomeSource);
     }
 
